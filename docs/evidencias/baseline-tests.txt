@@ -1,0 +1,47 @@
+============================= test session starts ==============================
+platform linux -- Python 3.14.4, pytest-9.1.1, pluggy-1.6.0
+rootdir: /home/bia/reuso/bottle
+configfile: pyproject.toml
+testpaths: test
+plugins: cov-7.1.0
+collected 363 items
+
+test/test_app.py .                                                       [  0%]
+test/test_auth.py .                                                      [  0%]
+test/test_config.py ...........                                          [  3%]
+test/test_contextlocals.py ..                                            [  4%]
+test/test_environ.py ................................................... [ 18%]
+........................                                                 [ 24%]
+test/test_exc.py .....                                                   [ 26%]
+test/test_fileupload.py .........                                        [ 28%]
+test/test_formsdict.py ..                                                [ 29%]
+test/test_html_helper.py .                                               [ 29%]
+test/test_importhook.py .....                                            [ 30%]
+test/test_mdict.py ....                                                  [ 31%]
+test/test_mount.py ............                                          [ 35%]
+test/test_multipart.py .......................                           [ 41%]
+test/test_oorouting.py .                                                 [ 41%]
+test/test_outputfilter.py ...........................                    [ 49%]
+test/test_plugins.py ....................                                [ 54%]
+test/test_resources.py ........                                          [ 57%]
+test/test_route.py ........                                              [ 59%]
+test/test_router.py ....................................                 [ 69%]
+test/test_securecookies.py ....                                          [ 70%]
+test/test_sendfile.py .................                                  [ 74%]
+test/test_stpl.py ................................................       [ 88%]
+test/test_wsgi.py ...........................................            [100%]
+
+=============================== warnings summary ===============================
+test/test_sendfile.py::TestSendFile::test_mime_gzip
+  /home/bia/reuso/bottle/.venv/lib/python3.14/site-packages/_pytest/unraisableexception.py:67: PytestUnraisableExceptionWarning: Exception ignored while finalizing file <_io.BufferedReader name='/tmp/tmppwzp88ym.txt.gz'>: None
+  
+  Traceback (most recent call last):
+    File "/usr/lib/python3.14/unittest/case.py", line 615, in _callTestMethod
+      result = method()
+  OSError: [Errno 9] Bad file descriptor
+  
+  
+    warnings.warn(pytest.PytestUnraisableExceptionWarning(msg))
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+======================== 363 passed, 1 warning in 0.88s ========================
