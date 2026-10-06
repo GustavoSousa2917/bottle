@@ -1,0 +1,30 @@
+============================= test session starts ==============================
+platform linux -- Python 3.14.4, pytest-9.1.1, pluggy-1.6.0 -- /home/bia/reuso/bottle/.venv/bin/python
+cachedir: .pytest_cache
+rootdir: /home/bia/reuso/bottle
+configfile: pyproject.toml
+plugins: cov-7.1.0
+collecting ... collected 20 items
+
+test/test_plugins.py::TestPluginManagement::test_install_decorator PASSED [  5%]
+test/test_plugins.py::TestPluginManagement::test_install_non_plugin PASSED [ 10%]
+test/test_plugins.py::TestPluginManagement::test_install_plugin PASSED   [ 15%]
+test/test_plugins.py::TestPluginManagement::test_json_plugin_catches_httpresponse PASSED [ 20%]
+test/test_plugins.py::TestPluginManagement::test_plugin_oder PASSED      [ 25%]
+test/test_plugins.py::TestPluginManagement::test_route_plugin PASSED     [ 30%]
+test/test_plugins.py::TestPluginManagement::test_skip_all PASSED         [ 35%]
+test/test_plugins.py::TestPluginManagement::test_skip_by_class PASSED    [ 40%]
+test/test_plugins.py::TestPluginManagement::test_skip_by_instance PASSED [ 45%]
+test/test_plugins.py::TestPluginManagement::test_skip_by_name PASSED     [ 50%]
+test/test_plugins.py::TestPluginManagement::test_skip_nonlist PASSED     [ 55%]
+test/test_plugins.py::TestPluginManagement::test_uninstall_all PASSED    [ 60%]
+test/test_plugins.py::TestPluginManagement::test_uninstall_by_instance PASSED [ 65%]
+test/test_plugins.py::TestPluginManagement::test_uninstall_by_name PASSED [ 70%]
+test/test_plugins.py::TestPluginManagement::test_uninstall_by_type PASSED [ 75%]
+test/test_plugins.py::TestPluginAPI::test_apply PASSED                   [ 80%]
+test/test_plugins.py::TestPluginAPI::test_callable PASSED                [ 85%]
+test/test_plugins.py::TestPluginAPI::test_close PASSED                   [ 90%]
+test/test_plugins.py::TestPluginAPI::test_instance_method_wrapper PASSED [ 95%]
+test/test_plugins.py::TestPluginAPI::test_setup PASSED                   [100%]
+
+============================== 20 passed in 0.11s ==============================
