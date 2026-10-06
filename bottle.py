@@ -257,8 +257,22 @@ def _re_flatten(p):
     return re.sub(r'(\\*)(\(\?P<[^>]+>|\((?!\?))', lambda m: m.group(0) if
                   len(m.group(1)) % 2 else m.group(1) + '(?:', p)
 
+class _CallablePluginAdapter:
+    """Adapt a callable plugin to the plugin interface expected by Route."""
 
-class Router:
+    def __init__(self, plugin):
+        self.plugin = plugin
+
+    def apply(self, callback, route):
+        return self.plugin(callback)
+
+
+def _adapt_plugin(plugin):
+    """Return a plugin with the standard apply(callback, route) interface."""
+    if hasattr(plugin, 'apply'):
+        return plugin
+    return _CallablePluginAdapter(plugin)
+    class Router:
     """ A Router is an ordered collection of route->target pairs. It is used to
         efficiently match WSGI requests against a number of routes and return
         the first target that satisfies the request. The target may be anything,
@@ -522,13 +536,14 @@ class Route:
 
     def _make_callback(self):
         callback = self.callback
+
         for plugin in self.all_plugins():
-            if hasattr(plugin, 'apply'):
-                callback = plugin.apply(callback, self)
-            else:
-                callback = plugin(callback)
+            plugin = _adapt_plugin(plugin)
+            callback = plugin.apply(callback, self)
+
             if callback is not self.callback:
                 update_wrapper(callback, self.callback)
+
         return callback
 
     def get_undecorated_callback(self):
