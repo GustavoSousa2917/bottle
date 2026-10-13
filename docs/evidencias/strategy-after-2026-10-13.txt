@@ -1,0 +1,49 @@
+============================= test session starts ==============================
+platform linux -- Python 3.14.4, pytest-9.1.1, pluggy-1.6.0 -- /home/bia/reuso/bottle/.venv/bin/python
+cachedir: .pytest_cache
+rootdir: /home/bia/reuso/bottle
+configfile: pyproject.toml
+plugins: cov-7.1.0
+collecting ... collected 19 items
+
+test/test_sendfile.py::TestDateParser::test_asctime PASSED               [  5%]
+test/test_sendfile.py::TestDateParser::test_bad PASSED                   [ 10%]
+test/test_sendfile.py::TestDateParser::test_rfc1123 PASSED               [ 15%]
+test/test_sendfile.py::TestDateParser::test_rfc850 PASSED                [ 21%]
+test/test_sendfile.py::TestSendFile::test_custom_headers PASSED          [ 26%]
+test/test_sendfile.py::TestSendFile::test_download PASSED                [ 31%]
+test/test_sendfile.py::TestSendFile::test_etag PASSED                    [ 36%]
+test/test_sendfile.py::TestSendFile::test_etag_overrides_ims PASSED      [ 42%]
+test/test_sendfile.py::TestSendFile::test_file_not_readable PASSED       [ 47%]
+test/test_sendfile.py::TestSendFile::test_head PASSED                    [ 52%]
+test/test_sendfile.py::TestSendFile::test_head_with_range PASSED         [ 57%]
+test/test_sendfile.py::TestSendFile::test_ims PASSED                     [ 63%]
+test/test_sendfile.py::TestSendFile::test_ims_empty PASSED               [ 68%]
+test/test_sendfile.py::TestSendFile::test_invalid PASSED                 [ 73%]
+test/test_sendfile.py::TestSendFile::test_mime PASSED                    [ 78%]
+test/test_sendfile.py::TestSendFile::test_mime_gzip FAILED               [ 84%]
+test/test_sendfile.py::TestSendFile::test_range PASSED                   [ 89%]
+test/test_sendfile.py::TestSendFile::test_range_parser PASSED            [ 94%]
+test/test_sendfile.py::TestSendFile::test_valid PASSED                   [100%]
+
+=================================== FAILURES ===================================
+_________________________ TestSendFile.test_mime_gzip __________________________
+
+self = <test.test_sendfile.TestSendFile testMethod=test_mime_gzip>
+
+    def test_mime_gzip(self):
+        """ SendFile: Mime Guessing"""
+        try:
+            fp, fn = tempfile.mkstemp(suffix=".txt.gz")
+            os.close(fp) #  File needs to be closed before it can be accessed on Windows
+            f = static_file(fn, root='/')
+            self.assertTrue(f.headers['Content-Type'][0] in ('application/gzip'))
+            self.assertFalse('Content-Encoding' in f.headers)
+        finally:
+>           os.close(fp)
+E           OSError: [Errno 9] Bad file descriptor
+
+test/test_sendfile.py:100: OSError
+=========================== short test summary info ============================
+FAILED test/test_sendfile.py::TestSendFile::test_mime_gzip - OSError: [Errno ...
+========================= 1 failed, 18 passed in 0.17s =========================

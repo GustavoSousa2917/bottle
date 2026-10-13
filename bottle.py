@@ -2784,6 +2784,44 @@ def _rangeiter(fp, offset, limit, bufsize=1024 * 1024):
         limit -= len(part)
         yield part
 
+class _StaticFileStrategy:
+    """Base strategy for producing a static-file HTTP response."""
+
+    def execute(self, filename, length, headers, range_header=None):
+        raise NotImplementedError
+
+
+class _StaticFileFullStrategy(_StaticFileStrategy):
+    def execute(self, filename, length, headers, range_header=None):
+        return HTTPResponse(open(filename, 'rb'), **headers)
+
+
+class _StaticFileHeadStrategy(_StaticFileStrategy):
+    def execute(self, filename, length, headers, range_header=None):
+        return HTTPResponse('', **headers)
+
+
+class _StaticFileRangeStrategy(_StaticFileStrategy):
+    def execute(self, filename, length, headers, range_header=None):
+        ranges = list(parse_range_header(range_header, length))
+        if not ranges:
+            return HTTPError(416, "Requested Range Not Satisfiable")
+        offset, end = ranges[0]
+        range_length = end - offset
+        headers["Content-Range"] = "bytes %d-%d/%d" % (
+            offset, end - 1, length
+        )
+        headers["Content-Length"] = str(range_length)
+
+        # HEAD with Range must keep the original empty-body behavior.
+        if request.method == 'HEAD':
+            body = ''
+        else:
+            body = open(filename, 'rb')
+            body = _closeiter(
+                _rangeiter(body, offset, range_length), body.close
+            )
+        return HTTPResponse(body, status=206, **headers)
 
 def static_file(filename, root,
                 mimetype=True,
@@ -2880,21 +2918,16 @@ def static_file(filename, root,
         if ims >= stats.st_mtime:
             return HTTPResponse(status=304, **headers)
 
-    body = '' if request.method == 'HEAD' else open(filename, 'rb')
 
     headers["Accept-Ranges"] = "bytes"
     range_header = getenv('HTTP_RANGE')
     if range_header:
-        ranges = list(parse_range_header(range_header, clen))
-        if not ranges:
-            return HTTPError(416, "Requested Range Not Satisfiable")
-        offset, end = ranges[0]
-        rlen = end - offset
-        headers["Content-Range"] = "bytes %d-%d/%d" % (offset, end - 1, clen)
-        headers["Content-Length"] = str(rlen)
-        if body: body = _closeiter(_rangeiter(body, offset, rlen), body.close)
-        return HTTPResponse(body, status=206, **headers)
-    return HTTPResponse(body, **headers)
+        strategy = _StaticFileRangeStrategy()
+    elif request.method == 'HEAD':
+        strategy = _StaticFileHeadStrategy()
+    else:
+        strategy = _StaticFileFullStrategy()
+    return strategy.execute(filename, clen, headers, range_header)
 
 ###############################################################################
 # HTTP Utilities and MISC (TODO) ###############################################

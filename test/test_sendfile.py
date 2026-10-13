@@ -181,6 +181,31 @@ class TestSendFile(unittest.TestCase):
         f = static_file(basename, root=root)
         self.assertEqual(open(__file__,'rb').read(), f.body.read())
 
+    def test_head(self):
+        request.environ['REQUEST_METHOD'] = 'HEAD'
+
+        out = static_file(basename, root=root)
+
+        self.assertEqual(out.status_code, 200)
+        self.assertEqual(out.body, '')
+        self.assertEqual(
+            out.headers['Content-Length'], str(os.path.getsize(__file__)))
+        self.assertEqual(out.headers['Accept-Ranges'], 'bytes')
+
+    def test_head_with_range(self):
+        request.environ['REQUEST_METHOD'] = 'HEAD'
+        request.environ['HTTP_RANGE'] = 'bytes=10-25'
+
+        out = static_file(basename, root=root)
+
+        self.assertEqual(out.status_code, 206)
+        self.assertEqual(out.body, '')
+        self.assertEqual(out.headers['Content-Length'], '16')
+        self.assertEqual(
+            out.headers['Content-Range'],
+            'bytes 10-25/%d' % os.path.getsize(__file__))
+        self.assertEqual(out.headers['Accept-Ranges'], 'bytes')
+
     def test_range(self):
         request.environ['HTTP_RANGE'] = 'bytes=10-25,-80'
         f = static_file(basename, root=root)

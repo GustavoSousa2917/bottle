@@ -1,0 +1,42 @@
+============================= test session starts ==============================
+platform linux -- Python 3.14.4, pytest-9.1.1, pluggy-1.6.0 -- /home/bia/reuso/bottle/.venv/bin/python
+cachedir: .pytest_cache
+rootdir: /home/bia/reuso/bottle
+configfile: pyproject.toml
+plugins: cov-7.1.0
+collecting ... collected 19 items
+
+test/test_sendfile.py::TestDateParser::test_asctime PASSED               [  5%]
+test/test_sendfile.py::TestDateParser::test_bad PASSED                   [ 10%]
+test/test_sendfile.py::TestDateParser::test_rfc1123 PASSED               [ 15%]
+test/test_sendfile.py::TestDateParser::test_rfc850 PASSED                [ 21%]
+test/test_sendfile.py::TestSendFile::test_custom_headers PASSED          [ 26%]
+test/test_sendfile.py::TestSendFile::test_download PASSED                [ 31%]
+test/test_sendfile.py::TestSendFile::test_etag PASSED                    [ 36%]
+test/test_sendfile.py::TestSendFile::test_etag_overrides_ims PASSED      [ 42%]
+test/test_sendfile.py::TestSendFile::test_file_not_readable PASSED       [ 47%]
+test/test_sendfile.py::TestSendFile::test_head PASSED                    [ 52%]
+test/test_sendfile.py::TestSendFile::test_head_with_range PASSED         [ 57%]
+test/test_sendfile.py::TestSendFile::test_ims PASSED                     [ 63%]
+test/test_sendfile.py::TestSendFile::test_ims_empty PASSED               [ 68%]
+test/test_sendfile.py::TestSendFile::test_invalid PASSED                 [ 73%]
+test/test_sendfile.py::TestSendFile::test_mime PASSED                    [ 78%]
+test/test_sendfile.py::TestSendFile::test_mime_gzip PASSED               [ 84%]
+test/test_sendfile.py::TestSendFile::test_range PASSED                   [ 89%]
+test/test_sendfile.py::TestSendFile::test_range_parser PASSED            [ 94%]
+test/test_sendfile.py::TestSendFile::test_valid PASSED                   [100%]
+
+=============================== warnings summary ===============================
+test/test_sendfile.py::TestSendFile::test_mime_gzip
+  /home/bia/reuso/bottle/.venv/lib/python3.14/site-packages/_pytest/unraisableexception.py:67: PytestUnraisableExceptionWarning: Exception ignored while finalizing file <_io.BufferedReader name='/tmp/tmpdksq5qqr.txt.gz'>: None
+  
+  Traceback (most recent call last):
+    File "/usr/lib/python3.14/unittest/case.py", line 615, in _callTestMethod
+      result = method()
+  OSError: [Errno 9] Bad file descriptor
+  
+  
+    warnings.warn(pytest.PytestUnraisableExceptionWarning(msg))
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+======================== 19 passed, 1 warning in 0.15s =========================
