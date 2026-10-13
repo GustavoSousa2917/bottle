@@ -596,6 +596,85 @@ class Route:
 # Application Object ###########################################################
 ###############################################################################
 
+class _CastHandler:
+    """Base class for one link in the response-casting chain."""
+
+    def handle(self, app, out):
+        raise NotImplementedError
+
+
+class _CastBytesHandler(_CastHandler):
+    def handle(self, app, out):
+        if isinstance(out, bytes):
+            if 'Content-Length' not in response:
+                response['Content-Length'] = len(out)
+            return True, [out]
+        return False, None
+
+
+class _CastHTTPErrorHandler(_CastHandler):
+    def handle(self, app, out):
+        if isinstance(out, HTTPError):
+            out.apply(response)
+            body = app.error_handler.get(
+                out.status_code, app.default_error_handler
+            )(out)
+            return True, app._cast(body)
+        return False, None
+
+
+class _CastHTTPResponseHandler(_CastHandler):
+    def handle(self, app, out):
+        if isinstance(out, HTTPResponse):
+            out.apply(response)
+            return True, app._cast(out.body)
+        return False, None
+
+
+class _CastFileHandler(_CastHandler):
+    def handle(self, app, out):
+        if hasattr(out, 'read'):
+            if 'wsgi.file_wrapper' in request.environ:
+                return True, request.environ['wsgi.file_wrapper'](out)
+            if hasattr(out, 'close') or not hasattr(out, '__iter__'):
+                return True, WSGIFileWrapper(out)
+        return False, None
+
+
+class _CastIterableHandler(_CastHandler):
+    def handle(self, app, out):
+        try:
+            iout = iter(out)
+            first = next(iout)
+            while not first:
+                first = next(iout)
+        except StopIteration:
+            _try_close(out)
+            return True, app._cast('')
+        except HTTPResponse as error_response:
+            first = error_response
+        except (KeyboardInterrupt, SystemExit, MemoryError):
+            raise
+        except Exception as error:
+            _try_close(out)
+            if not app.catchall:
+                raise
+            first = HTTPError(500, 'Unhandled exception', error, format_exc())
+
+        if isinstance(first, HTTPResponse):
+            return True, app._cast(first)
+        if isinstance(first, bytes):
+            new_iter = itertools.chain([first], iout)
+        elif isinstance(first, str):
+            encoder = lambda value: value.encode(response.charset)
+            new_iter = map(encoder, itertools.chain([first], iout))
+        else:
+            _try_close(out)
+            msg = 'Unsupported response type: %s' % type(first)
+            return True, app._cast(HTTPError(500, msg))
+        if hasattr(out, 'close'):
+            new_iter = _closeiter(new_iter, out.close)
+        return True, new_iter
 
 class Bottle:
     """ Each Bottle object represents a single, distinct web application and
@@ -999,79 +1078,33 @@ class Bottle:
         return out
 
     def _cast(self, out, peek=None):
-        """ Try to convert the parameter into something WSGI compatible and set
-            correct HTTP headers when possible.
-            Support: False, bytes/bytearray, str, dict, HTTPResponse, HTTPError,
-            file-like, iterable of bytes/bytearray or str instances.
-        """
-
-        # Empty output is done here
+        """Convert the response to WSGI-compatible output using a handler chain."""
         if not out:
             if 'Content-Length' not in response:
                 response['Content-Length'] = 0
             return []
-        # Join lists of byte or unicode strings. Mixed lists are NOT supported
+
+        # Preserve Bottle's existing optimization for lists/tuples of strings.
         if isinstance(out, (tuple, list)) and isinstance(out[0], (bytes, str)):
-            out = out[0][0:0].join(out)  # b'abc'[0:0] -> b''
-        # Encode unicode strings
+            out = out[0][0:0].join(out)
         if isinstance(out, str):
             out = out.encode(response.charset)
-        # Byte Strings are just returned
-        if isinstance(out, bytes):
-            if 'Content-Length' not in response:
-                response['Content-Length'] = len(out)
-            return [out]
-        # HTTPError or HTTPException (recursive, because they may wrap anything)
-        # TODO: Handle these explicitly in handle() or make them iterable.
-        if isinstance(out, HTTPError):
-            out.apply(response)
-            out = self.error_handler.get(out.status_code,
-                                         self.default_error_handler)(out)
-            return self._cast(out)
-        if isinstance(out, HTTPResponse):
-            out.apply(response)
-            return self._cast(out.body)
 
-        # File-like objects.
-        if hasattr(out, 'read'):
-            if 'wsgi.file_wrapper' in request.environ:
-                return request.environ['wsgi.file_wrapper'](out)
-            elif hasattr(out, 'close') or not hasattr(out, '__iter__'):
-                return WSGIFileWrapper(out)
+        handlers = (
+            _CastBytesHandler(),
+            _CastHTTPErrorHandler(),
+            _CastHTTPResponseHandler(),
+            _CastFileHandler(),
+            _CastIterableHandler(),
+        )
+        for handler in handlers:
+            handled, result = handler.handle(self, out)
+            if handled:
+                return result
 
-        # Handle Iterables. We peek into them to detect their inner type.
-        try:
-            iout = iter(out)
-            first = next(iout)
-            while not first:
-                first = next(iout)
-        except StopIteration:
-            _try_close(out)
-            return self._cast('')
-        except HTTPResponse as E:
-            first = E
-        except (KeyboardInterrupt, SystemExit, MemoryError):
-            raise
-        except Exception as error:
-            _try_close(out)
-            if not self.catchall: raise
-            first = HTTPError(500, 'Unhandled exception', error, format_exc())
-
-        # These are the inner types allowed in iterator or generator objects.
-        if isinstance(first, HTTPResponse):
-            return self._cast(first)
-        elif isinstance(first, bytes):
-            new_iter = itertools.chain([first], iout)
-        elif isinstance(first, str):
-            encoder = lambda x: x.encode(response.charset)
-            new_iter = map(encoder, itertools.chain([first], iout))
-        else:
-            _try_close(out)
-            msg = 'Unsupported response type: %s' % type(first)
-            return self._cast(HTTPError(500, msg))
-        if hasattr(out, 'close'):
-            new_iter = _closeiter(new_iter, out.close)
-        return new_iter
+        # The iterable handler normally handles all remaining values.
+        msg = 'Unsupported response type: %s' % type(out)
+        return self._cast(HTTPError(500, msg))
 
     def wsgi(self, environ, start_response):
         """ The bottle WSGI-interface. """
