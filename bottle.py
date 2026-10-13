@@ -272,7 +272,9 @@ def _adapt_plugin(plugin):
     if hasattr(plugin, 'apply'):
         return plugin
     return _CallablePluginAdapter(plugin)
-    class Router:
+
+
+class Router:
     """ A Router is an ordered collection of route->target pairs. It is used to
         efficiently match WSGI requests against a number of routes and return
         the first target that satisfies the request. The target may be anything,
