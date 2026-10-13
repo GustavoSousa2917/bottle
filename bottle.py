@@ -4049,6 +4049,14 @@ class BaseTemplate:
         Local variables may be provided in dictionaries (args)
         or directly, as keywords (kwargs).
         """
+        for dictarg in args:
+            kwargs.update(dictarg)
+        _defaults = self.defaults.copy()
+        _defaults.update(kwargs)
+        return self._render(_defaults)
+
+    def _render(self, context):
+        """ Render using the engine-specific implementation. """
         raise NotImplementedError
 
 
@@ -4066,12 +4074,8 @@ class MakoTemplate(BaseTemplate):
                                 filename=self.filename,
                                 lookup=lookup, **options)
 
-    def render(self, *args, **kwargs):
-        for dictarg in args:
-            kwargs.update(dictarg)
-        _defaults = self.defaults.copy()
-        _defaults.update(kwargs)
-        return self.tpl.render(**_defaults)
+    def _render(self, context):
+        return self.tpl.render(**context)
 
 
 class CheetahTemplate(BaseTemplate):
@@ -4107,12 +4111,8 @@ class Jinja2Template(BaseTemplate):
         else:
             self.tpl = self.env.get_template(self.name)
 
-    def render(self, *args, **kwargs):
-        for dictarg in args:
-            kwargs.update(dictarg)
-        _defaults = self.defaults.copy()
-        _defaults.update(kwargs)
-        return self.tpl.render(**_defaults)
+    def _render(self, context):
+        return self.tpl.render(**context)
 
     def loader(self, name):
         if name == self.filename:

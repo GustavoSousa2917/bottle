@@ -1,0 +1,28 @@
+============================= test session starts ==============================
+platform linux -- Python 3.14.4, pytest-9.1.1, pluggy-1.6.0 -- /home/bia/reuso/bottle/.venv/bin/python
+cachedir: .pytest_cache
+rootdir: /home/bia/reuso/bottle
+configfile: pyproject.toml
+plugins: cov-7.1.0
+collecting ... collected 18 items
+
+test/test_mako.py::TestMakoTemplate::test_error PASSED                   [  5%]
+test/test_mako.py::TestMakoTemplate::test_file PASSED                    [ 11%]
+test/test_mako.py::TestMakoTemplate::test_inherit PASSED                 [ 16%]
+test/test_mako.py::TestMakoTemplate::test_name PASSED                    [ 22%]
+test/test_mako.py::TestMakoTemplate::test_notfound PASSED                [ 27%]
+test/test_mako.py::TestMakoTemplate::test_string PASSED                  [ 33%]
+test/test_mako.py::TestMakoTemplate::test_template_shortcut PASSED       [ 38%]
+test/test_mako.py::TestMakoTemplate::test_view_decorator PASSED          [ 44%]
+test/test_jinja2.py::TestJinja2Template::test_custom_filters PASSED      [ 50%]
+test/test_jinja2.py::TestJinja2Template::test_custom_tests PASSED        [ 55%]
+test/test_jinja2.py::TestJinja2Template::test_error PASSED               [ 61%]
+test/test_jinja2.py::TestJinja2Template::test_file PASSED                [ 66%]
+test/test_jinja2.py::TestJinja2Template::test_inherit PASSED             [ 72%]
+test/test_jinja2.py::TestJinja2Template::test_name PASSED                [ 77%]
+test/test_jinja2.py::TestJinja2Template::test_notfound PASSED            [ 83%]
+test/test_jinja2.py::TestJinja2Template::test_string PASSED              [ 88%]
+test/test_jinja2.py::TestJinja2Template::test_template_shortcut PASSED   [ 94%]
+test/test_jinja2.py::TestJinja2Template::test_view_decorator PASSED      [100%]
+
+============================== 18 passed in 0.42s ==============================

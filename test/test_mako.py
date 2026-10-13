@@ -9,6 +9,23 @@ class TestMakoTemplate(unittest.TestCase):
         t = MakoTemplate('start ${var} end').render(var='var')
         self.assertEqual('start var end', t)
 
+    def test_render_variable_precedence(self):
+        tpl = MakoTemplate('${value}')
+        tpl.defaults = {'value': 'default'}
+        first = {'value': 'first'}
+        second = {'value': 'second'}
+
+        self.assertEqual(tpl.render(), 'default')
+        self.assertEqual(tpl.render(value='keyword'), 'keyword')
+        self.assertEqual(tpl.render(first, value='keyword'), 'first')
+        self.assertEqual(
+            tpl.render(first, second, value='keyword'), 'second')
+
+        self.assertEqual(first, {'value': 'first'})
+        self.assertEqual(second, {'value': 'second'})
+        self.assertEqual(tpl.defaults, {'value': 'default'})
+        self.assertEqual(tpl.render(), 'default')
+
     def test_file(self):
         """ Templates: Mako file"""
         with chdir(__file__):

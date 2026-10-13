@@ -1,0 +1,20 @@
+........................................................................ [ 18%]
+........................................................................ [ 37%]
+........................................................................ [ 56%]
+........................................................................ [ 75%]
+........................................................................ [ 93%]
+.......................                                                  [100%]
+=============================== warnings summary ===============================
+test/test_sendfile.py::TestSendFile::test_mime_gzip
+  /home/bia/reuso/bottle/.venv/lib/python3.14/site-packages/_pytest/unraisableexception.py:67: PytestUnraisableExceptionWarning: Exception ignored while finalizing file <_io.BufferedReader name='/tmp/tmp9a8v7grd.txt.gz'>: None
+  
+  Traceback (most recent call last):
+    File "/usr/lib/python3.14/unittest/case.py", line 615, in _callTestMethod
+      result = method()
+  OSError: [Errno 9] Bad file descriptor
+  
+  
+    warnings.warn(pytest.PytestUnraisableExceptionWarning(msg))
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+383 passed, 1 warning in 0.94s

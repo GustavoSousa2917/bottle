@@ -12,6 +12,23 @@ class TestJinja2Template(unittest.TestCase):
         t = Jinja2Template('start {{var}} end').render(var='var')
         self.assertEqual('start var end', ''.join(t))
 
+    def test_render_variable_precedence(self):
+        tpl = Jinja2Template('{{value}}')
+        tpl.defaults = {'value': 'default'}
+        first = {'value': 'first'}
+        second = {'value': 'second'}
+
+        self.assertEqual(tpl.render(), 'default')
+        self.assertEqual(tpl.render(value='keyword'), 'keyword')
+        self.assertEqual(tpl.render(first, value='keyword'), 'first')
+        self.assertEqual(
+            tpl.render(first, second, value='keyword'), 'second')
+
+        self.assertEqual(first, {'value': 'first'})
+        self.assertEqual(second, {'value': 'second'})
+        self.assertEqual(tpl.defaults, {'value': 'default'})
+        self.assertEqual(tpl.render(), 'default')
+
     def test_file(self):
         """ Templates: Jinja2 file"""
         with chdir(__file__):
