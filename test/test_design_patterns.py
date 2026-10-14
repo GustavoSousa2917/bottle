@@ -181,3 +181,32 @@ class TestPatternEdges(ServerTestBase):
                 env={'HTTP_RANGE': 'bytes=99-100'}
             )
             assert invalid['code'] == 416
+
+
+class TestPatternBranches(ServerTestBase):
+    def test_terminal_handler(self):
+        with self.assertRaises(TypeError):
+            bottle._CastHandler().handle(self.app, object())
+
+    def test_file_wrapper(self):
+        self.app.get('/wrapped', callback=lambda: BytesIO(b'data'))
+
+        def wrapper(stream, *args):
+            yield stream.read()
+
+        result = self.urlopen(
+            '/wrapped', env={'wsgi.file_wrapper': wrapper}
+        )
+        self.assertEqual(result['code'], 200)
+        self.assertEqual(result['body'], b'data')
+
+    def test_iterable_exception(self):
+        def broken():
+            raise ValueError('iterator failure')
+            yield b''
+
+        app = bottle.Bottle()
+        app.config['catchall'] = False
+
+        with self.assertRaisesRegex(ValueError, 'iterator failure'):
+            list(app._cast(broken()))
