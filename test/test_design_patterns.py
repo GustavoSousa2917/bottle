@@ -8,7 +8,8 @@ from .tools import ServerTestBase
 
 
 def test_adapter():
-    plugin = lambda fn: lambda: 'adapted-' + fn()
+    def plugin(fn):
+        return lambda: 'adapted-' + fn()
     adapter = bottle._adapt_plugin(plugin)
 
     assert isinstance(adapter, bottle._CallablePluginAdapter)
