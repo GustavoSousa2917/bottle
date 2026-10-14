@@ -599,8 +599,13 @@ class Route:
 class _CastHandler:
     """Base class for one link in the response-casting chain."""
 
+    def __init__(self, next_handler=None):
+        self._next_handler = next_handler
+
     def handle(self, app, out):
-        raise NotImplementedError
+        if self._next_handler is None:
+            raise TypeError('No handler for %s' % type(out))
+        return self._next_handler.handle(app, out)
 
 
 class _CastBytesHandler(_CastHandler):
@@ -608,8 +613,8 @@ class _CastBytesHandler(_CastHandler):
         if isinstance(out, bytes):
             if 'Content-Length' not in response:
                 response['Content-Length'] = len(out)
-            return True, [out]
-        return False, None
+            return [out]
+        return super().handle(app, out)
 
 
 class _CastHTTPErrorHandler(_CastHandler):
@@ -619,26 +624,26 @@ class _CastHTTPErrorHandler(_CastHandler):
             body = app.error_handler.get(
                 out.status_code, app.default_error_handler
             )(out)
-            return True, app._cast(body)
-        return False, None
+            return app._cast(body)
+        return super().handle(app, out)
 
 
 class _CastHTTPResponseHandler(_CastHandler):
     def handle(self, app, out):
         if isinstance(out, HTTPResponse):
             out.apply(response)
-            return True, app._cast(out.body)
-        return False, None
+            return app._cast(out.body)
+        return super().handle(app, out)
 
 
 class _CastFileHandler(_CastHandler):
     def handle(self, app, out):
         if hasattr(out, 'read'):
             if 'wsgi.file_wrapper' in request.environ:
-                return True, request.environ['wsgi.file_wrapper'](out)
+                return request.environ['wsgi.file_wrapper'](out)
             if hasattr(out, 'close') or not hasattr(out, '__iter__'):
-                return True, WSGIFileWrapper(out)
-        return False, None
+                return WSGIFileWrapper(out)
+        return super().handle(app, out)
 
 
 class _CastIterableHandler(_CastHandler):
@@ -650,7 +655,7 @@ class _CastIterableHandler(_CastHandler):
                 first = next(iout)
         except StopIteration:
             _try_close(out)
-            return True, app._cast('')
+            return app._cast('')
         except HTTPResponse as error_response:
             first = error_response
         except (KeyboardInterrupt, SystemExit, MemoryError):
@@ -662,7 +667,7 @@ class _CastIterableHandler(_CastHandler):
             first = HTTPError(500, 'Unhandled exception', error, format_exc())
 
         if isinstance(first, HTTPResponse):
-            return True, app._cast(first)
+            return app._cast(first)
         if isinstance(first, bytes):
             new_iter = itertools.chain([first], iout)
         elif isinstance(first, str):
@@ -671,10 +676,18 @@ class _CastIterableHandler(_CastHandler):
         else:
             _try_close(out)
             msg = 'Unsupported response type: %s' % type(first)
-            return True, app._cast(HTTPError(500, msg))
+            return app._cast(HTTPError(500, msg))
         if hasattr(out, 'close'):
             new_iter = _closeiter(new_iter, out.close)
-        return True, new_iter
+        return new_iter
+
+_CAST_HANDLER_CHAIN = _CastBytesHandler(
+    _CastHTTPErrorHandler(
+        _CastHTTPResponseHandler(
+            _CastFileHandler(_CastIterableHandler())
+        )
+    )
+)
 
 class Bottle:
     """ Each Bottle object represents a single, distinct web application and
@@ -1090,21 +1103,7 @@ class Bottle:
         if isinstance(out, str):
             out = out.encode(response.charset)
 
-        handlers = (
-            _CastBytesHandler(),
-            _CastHTTPErrorHandler(),
-            _CastHTTPResponseHandler(),
-            _CastFileHandler(),
-            _CastIterableHandler(),
-        )
-        for handler in handlers:
-            handled, result = handler.handle(self, out)
-            if handled:
-                return result
-
-        # The iterable handler normally handles all remaining values.
-        msg = 'Unsupported response type: %s' % type(out)
-        return self._cast(HTTPError(500, msg))
+        return _CAST_HANDLER_CHAIN.handle(self, out)
 
     def wsgi(self, environ, start_response):
         """ The bottle WSGI-interface. """
@@ -2823,6 +2822,13 @@ class _StaticFileRangeStrategy(_StaticFileStrategy):
             )
         return HTTPResponse(body, status=206, **headers)
 
+
+# Reusable, stateless strategies.
+_STATIC_FILE_FULL_STRATEGY = _StaticFileFullStrategy()
+_STATIC_FILE_HEAD_STRATEGY = _StaticFileHeadStrategy()
+_STATIC_FILE_RANGE_STRATEGY = _StaticFileRangeStrategy()
+
+
 def static_file(filename, root,
                 mimetype=True,
                 download=False,
@@ -2922,11 +2928,11 @@ def static_file(filename, root,
     headers["Accept-Ranges"] = "bytes"
     range_header = getenv('HTTP_RANGE')
     if range_header:
-        strategy = _StaticFileRangeStrategy()
+        strategy = _STATIC_FILE_RANGE_STRATEGY
     elif request.method == 'HEAD':
-        strategy = _StaticFileHeadStrategy()
+        strategy = _STATIC_FILE_HEAD_STRATEGY
     else:
-        strategy = _StaticFileFullStrategy()
+        strategy = _STATIC_FILE_FULL_STRATEGY
     return strategy.execute(filename, clen, headers, range_header)
 
 ###############################################################################
@@ -4155,14 +4161,12 @@ class CheetahTemplate(BaseTemplate):
         else:
             self.tpl = Template(file=self.filename, **options)
 
-    def render(self, *args, **kwargs):
-        for dictarg in args:
-            kwargs.update(dictarg)
-        self.context.vars.update(self.defaults)
-        self.context.vars.update(kwargs)
-        out = str(self.tpl)
-        self.context.vars.clear()
-        return out
+    def _render(self, context):
+        self.context.vars.update(context)
+        try:
+            return str(self.tpl)
+        finally:
+            self.context.vars.clear()
 
 
 class Jinja2Template(BaseTemplate):
@@ -4255,14 +4259,9 @@ class SimpleTemplate(BaseTemplate):
             return self._include(env, subtpl, **rargs)
         return env
 
-    def render(self, *args, **kwargs):
-        """ Render the template using keyword arguments as local variables. """
-        env = {}
+    def _render(self, context):
         stdout = []
-        for dictarg in args:
-            env.update(dictarg)
-        env.update(kwargs)
-        self.execute(stdout, env)
+        self.execute(stdout, context)
         return ''.join(stdout)
 
 
