@@ -63,6 +63,71 @@ Download and Install
 
 Install the latest stable release with ``pip install bottle`` or download `bottle.py`__ (unstable) into your project directory. There are no hard dependencies other than the Python standard library.
 
+
+Padrões de Projeto
+------------------
+
+Esta branch implementa quatro padrões de projeto no arquivo
+``bottle.py``, visando melhorar a organização, reutilização
+e manutenção do código.
+
+Adapter
+~~~~~~~
+
+A classe ``_CallablePluginAdapter`` adapta plugins baseados
+em funções para a interface ``apply()``.
+
+Isso permite que diferentes tipos de plugins sejam utilizados
+de maneira uniforme pelo sistema de rotas.
+
+Chain of Responsibility
+~~~~~~~~~~~~~~~~~~~~~~~
+
+A classe ``_CastHandler`` define uma cadeia de processamento
+de respostas HTTP.
+
+Cada handler verifica se consegue processar a resposta.
+Caso contrário, delega a responsabilidade ao próximo handler.
+
+A cadeia reutiliza as instâncias dos handlers, evitando
+criações desnecessárias de objetos.
+
+Strategy
+~~~~~~~~
+
+O processamento de arquivos estáticos utiliza três estratégias:
+
+* ``_StaticFileFullStrategy``: respostas completas.
+* ``_StaticFileHeadStrategy``: requisições HEAD.
+* ``_StaticFileRangeStrategy``: respostas parciais.
+
+Cada estratégia encapsula um comportamento específico,
+permitindo separar as responsabilidades.
+
+Template Method
+~~~~~~~~~~~~~~~
+
+O método ``BaseTemplate.render()`` define o fluxo comum
+de renderização de templates.
+
+O método ``_render()`` permite que cada mecanismo implemente
+seu comportamento específico.
+
+O padrão é utilizado nas classes ``SimpleTemplate``,
+``MakoTemplate``, ``Jinja2Template`` e ``CheetahTemplate``.
+
+Testes
+~~~~~~
+
+Os testes específicos estão localizados em
+``test/test_design_patterns.py``.
+
+Para executar todos os testes:
+
+.. code-block:: console
+
+   python3 -m pytest -q
+
 License
 -------
 
